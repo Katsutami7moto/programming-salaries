@@ -83,30 +83,68 @@ def predict_rub_salary_sj(job: dict):
     return predict_salary(job['payment_from'], job['payment_to'])
 
 
-def get_job_infos_sj():
-    env = Env()
-    env.read_env()
-    secret_key = env('SUPERJOB_SECRET_KEY')
+def get_vacancies_count_sj(secret_key: str, lang: str) -> int:
     url = 'https://api.superjob.ru/2.0/vacancies/'
     headers = {
         'X-Api-App-Id': secret_key,
     }
     payload = {
         'catalogues': 48,
-        'keyword': 'программист',
+        'keyword': f'программист {lang}',
         'town': 4,
+        'period': 0,
     }
     response = requests.get(url, headers=headers, params=payload)
     response.raise_for_status()
-    raw_jobs = response.json()
-    jobs = raw_jobs['objects']
-    infos = []
-    for job in jobs:
-        name = job["profession"]
-        town = job["town"]["title"]
-        salary = predict_rub_salary_sj(job)
-        infos.append(f'{name}, {town}, {salary}')
-    return infos
+    return response.json()['total']
+
+
+def fetch_vacancies_sj(secret_key: str, lang: str):
+    url = 'https://api.superjob.ru/2.0/vacancies/'
+    headers = {
+        'X-Api-App-Id': secret_key,
+    }
+    for page in count(0):
+        payload = {
+            'catalogues': 48,
+            'keyword': f'программист {lang}',
+            'town': 4,
+            'period': 0,
+            'count': 100,
+            'page': page,
+        }
+        response = requests.get(url, headers=headers, params=payload)
+        response.raise_for_status()
+        raw_jobs: dict = response.json()
+        jobs = raw_jobs['objects']
+
+        if not jobs:
+            break
+
+        yield from jobs
+
+
+def get_average_salary_sj(lang: str):
+    env = Env()
+    env.read_env()
+    secret_key = env('SUPERJOB_SECRET_KEY')
+    lang_jobs_salaries = tuple(
+        filter(
+            lambda x: x is not None,
+            map(predict_rub_salary_sj, fetch_vacancies_sj(secret_key, lang))
+        )
+    )
+    jobs_avg_salary = {
+        "vacancies_found": get_vacancies_count_sj(secret_key, lang),
+        "vacancies_processed": len(lang_jobs_salaries),
+        "average_salary": int(mean(lang_jobs_salaries)),
+    }
+    return jobs_avg_salary
+
+
+def main_sj(prog_langs: list[str]):
+    langs_jobs = dict(zip(prog_langs, map(get_average_salary_sj, prog_langs)))
+    print(json.dumps(langs_jobs, indent=4, ensure_ascii=False))
 
 
 if __name__ == '__main__':
@@ -122,5 +160,4 @@ if __name__ == '__main__':
         'Ruby',
         'Scala',
     ]
-    for info in get_job_infos_sj():
-        print(info)
+    main_sj(programming_languages)

@@ -39,12 +39,8 @@ def fetch_vacancies_hh(lang: str):
         yield from raw_vacancies['items']
 
 
-def predict_rub_salary_hh(vacancy: dict):
-    salary = vacancy['salary']
-    salary_from = salary['from']
-    salary_to = salary['to']
-    salary_currency = salary['currency']
-    if salary_currency != 'RUR':
+def predict_salary(salary_from, salary_to):
+    if salary_from == salary_to == 0:
         return None
     if salary_from and salary_to:
         return mean([salary_from, salary_to])
@@ -52,6 +48,13 @@ def predict_rub_salary_hh(vacancy: dict):
         return salary_from * 1.2
     if not salary_from:
         return salary_to * 0.8
+
+
+def predict_rub_salary_hh(vacancy: dict):
+    salary = vacancy['salary']
+    if salary['currency'] != 'RUR':
+        return None
+    return predict_salary(salary['from'], salary['to'])
 
 
 def get_average_salary_hh(lang: str):
@@ -69,24 +72,18 @@ def get_average_salary_hh(lang: str):
     return jobs_avg_salary
 
 
-def main_hh():
-    prog_langs = [  # sorted descending by "vacancies_processed"
-        'JavaScript',
-        'Python',
-        'Java',
-        'C++',
-        'C#',
-        'TypeScript',
-        'Go',
-        'Swift',
-        'Ruby',
-        'Scala',
-    ]
+def main_hh(prog_langs: list[str]):
     langs_jobs = dict(zip(prog_langs, map(get_average_salary_hh, prog_langs)))
     print(json.dumps(langs_jobs, indent=4, ensure_ascii=False))
 
 
-def get_job_names_sj():
+def predict_rub_salary_sj(job: dict):
+    if job['currency'] != 'rub':
+        return None
+    return predict_salary(job['payment_from'], job['payment_to'])
+
+
+def get_job_infos_sj():
     env = Env()
     env.read_env()
     secret_key = env('SUPERJOB_SECRET_KEY')
@@ -101,11 +98,29 @@ def get_job_names_sj():
     }
     response = requests.get(url, headers=headers, params=payload)
     response.raise_for_status()
-    jobs = response.json()['objects']
-    names = [f'{job["profession"]}, {job["town"]["title"]}' for job in jobs]
-    return names
+    raw_jobs = response.json()
+    jobs = raw_jobs['objects']
+    infos = []
+    for job in jobs:
+        name = job["profession"]
+        town = job["town"]["title"]
+        salary = predict_rub_salary_sj(job)
+        infos.append(f'{name}, {town}, {salary}')
+    return infos
 
 
 if __name__ == '__main__':
-    for name in get_job_names_sj():
-        print(name)
+    programming_languages = [
+        'JavaScript',
+        'Python',
+        'Java',
+        'C++',
+        'C#',
+        'TypeScript',
+        'Go',
+        'Swift',
+        'Ruby',
+        'Scala',
+    ]
+    for info in get_job_infos_sj():
+        print(info)

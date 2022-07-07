@@ -6,6 +6,17 @@ from environs import Env
 from tabulate import tabulate
 
 
+def predict_salary(salary_from, salary_to):
+    if salary_from == salary_to == 0:
+        return None
+    if salary_from and salary_to:
+        return mean([salary_from, salary_to])
+    if not salary_to:
+        return salary_from * 1.2
+    if not salary_from:
+        return salary_to * 0.8
+
+
 def get_vacancies_count_hh(lang: str) -> int:
     url = 'https://api.hh.ru/vacancies'
     payload = {
@@ -39,17 +50,6 @@ def fetch_vacancies_hh(lang: str):
         yield from raw_vacancies['items']
 
 
-def predict_salary(salary_from, salary_to):
-    if salary_from == salary_to == 0:
-        return None
-    if salary_from and salary_to:
-        return mean([salary_from, salary_to])
-    if not salary_to:
-        return salary_from * 1.2
-    if not salary_from:
-        return salary_to * 0.8
-
-
 def predict_rub_salary_hh(vacancy: dict):
     salary = vacancy['salary']
     if salary['currency'] != 'RUR':
@@ -76,12 +76,6 @@ def get_average_salary_hh(lang: str):
 def main_hh(prog_langs: list[str]):
     langs_jobs = list(map(get_average_salary_hh, prog_langs))
     print(tabulate(langs_jobs, headers='keys', tablefmt="grid"))
-
-
-def predict_rub_salary_sj(job: dict):
-    if job['currency'] != 'rub':
-        return None
-    return predict_salary(job['payment_from'], job['payment_to'])
 
 
 def get_vacancies_count_sj(secret_key: str, lang: str) -> int:
@@ -116,13 +110,18 @@ def fetch_vacancies_sj(secret_key: str, lang: str):
         }
         response = requests.get(url, headers=headers, params=payload)
         response.raise_for_status()
-        raw_jobs: dict = response.json()
-        jobs = raw_jobs['objects']
+        jobs = response.json()['objects']
 
         if not jobs:
             break
 
         yield from jobs
+
+
+def predict_rub_salary_sj(job: dict):
+    if job['currency'] != 'rub':
+        return None
+    return predict_salary(job['payment_from'], job['payment_to'])
 
 
 def get_average_salary_sj(lang: str):

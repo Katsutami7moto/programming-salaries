@@ -1,9 +1,9 @@
-import json
 from itertools import count
 from statistics import mean
 
 import requests
 from environs import Env
+from tabulate import tabulate
 
 
 def get_vacancies_count_hh(lang: str) -> int:
@@ -65,16 +65,17 @@ def get_average_salary_hh(lang: str):
         )
     )
     jobs_avg_salary = {
-        "vacancies_found": get_vacancies_count_hh(lang),
-        "vacancies_processed": len(lang_jobs_salaries),
-        "average_salary": int(mean(lang_jobs_salaries)),
+        'Язык программирования': lang,
+        'Вакансий найдено': get_vacancies_count_hh(lang),
+        'Вакансий обработано': len(lang_jobs_salaries),
+        'Средняя зарплата': int(mean(lang_jobs_salaries)),
     }
     return jobs_avg_salary
 
 
 def main_hh(prog_langs: list[str]):
-    langs_jobs = dict(zip(prog_langs, map(get_average_salary_hh, prog_langs)))
-    print(json.dumps(langs_jobs, indent=4, ensure_ascii=False))
+    langs_jobs = list(map(get_average_salary_hh, prog_langs))
+    print(tabulate(langs_jobs, headers='keys', tablefmt="grid"))
 
 
 def predict_rub_salary_sj(job: dict):
@@ -135,16 +136,17 @@ def get_average_salary_sj(lang: str):
         )
     )
     jobs_avg_salary = {
-        "vacancies_found": get_vacancies_count_sj(secret_key, lang),
-        "vacancies_processed": len(lang_jobs_salaries),
-        "average_salary": int(mean(lang_jobs_salaries)),
+        'Язык программирования': lang,
+        'Вакансий найдено': get_vacancies_count_sj(secret_key, lang),
+        'Вакансий обработано': len(lang_jobs_salaries),
+        'Средняя зарплата': int(mean(lang_jobs_salaries)),
     }
     return jobs_avg_salary
 
 
 def main_sj(prog_langs: list[str]):
-    langs_jobs = dict(zip(prog_langs, map(get_average_salary_sj, prog_langs)))
-    print(json.dumps(langs_jobs, indent=4, ensure_ascii=False))
+    langs_jobs = list(map(get_average_salary_sj, prog_langs))
+    print(tabulate(langs_jobs, headers='keys', tablefmt="grid"))
 
 
 if __name__ == '__main__':
@@ -160,4 +162,7 @@ if __name__ == '__main__':
         'Ruby',
         'Scala',
     ]
+    print('\nHeadHunter Moscow')
+    main_hh(programming_languages)
+    print('\nSuperJob Moscow')
     main_sj(programming_languages)

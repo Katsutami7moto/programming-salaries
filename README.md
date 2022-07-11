@@ -1,5 +1,5 @@
 # programming-salaries
-Count average salaries for programmer jobs by different languages
+Count average salaries for programmer jobs by different languages.
 
 ### How to install
 

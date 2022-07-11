@@ -73,7 +73,7 @@ def get_average_salary_hh(lang: str):
     return jobs_avg_salary
 
 
-def main_hh(prog_langs: list[str]):
+def show_table_hh(prog_langs: list[str]):
     langs_jobs = list(map(get_average_salary_hh, prog_langs))
     print(tabulate(langs_jobs, headers='keys', tablefmt="grid"))
 
@@ -143,7 +143,7 @@ def get_average_salary_sj(lang: str):
     return jobs_avg_salary
 
 
-def main_sj(prog_langs: list[str]):
+def show_table_sj(prog_langs: list[str]):
     langs_jobs = list(map(get_average_salary_sj, prog_langs))
     print(tabulate(langs_jobs, headers='keys', tablefmt="grid"))
 
@@ -162,6 +162,6 @@ if __name__ == '__main__':
         'Scala',
     ]
     print('\nHeadHunter Moscow')
-    main_hh(programming_languages)
+    show_table_hh(programming_languages)
     print('\nSuperJob Moscow')
-    main_sj(programming_languages)
+    show_table_sj(programming_languages)

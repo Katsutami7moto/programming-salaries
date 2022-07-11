@@ -1,6 +1,6 @@
+from functools import partial
 from itertools import count
 from statistics import mean
-from functools import partial
 
 import requests
 from environs import Env
@@ -18,20 +18,7 @@ def predict_salary(salary_from, salary_to):
         return salary_to * 0.8
 
 
-def get_vacancies_count_hh(lang: str) -> int:
-    url = 'https://api.hh.ru/vacancies'
-    payload = {
-        'text': f'программист {lang}',
-        'area': 1,
-        'period': 30,
-        'only_with_salary': True,
-    }
-    response = requests.get(url, params=payload)
-    response.raise_for_status()
-    return response.json()['found']
-
-
-def fetch_vacancies_hh(lang: str):
+def fetch_jobs_hh(lang: str):
     url = 'https://api.hh.ru/vacancies'
     for page in count(0):
         payload = {
@@ -43,31 +30,29 @@ def fetch_vacancies_hh(lang: str):
         }
         response = requests.get(url, params=payload)
         response.raise_for_status()
-        raw_vacancies: dict = response.json()
+        raw_jobs: dict = response.json()
 
-        if page >= raw_vacancies['pages']:
+        if page >= raw_jobs['pages']:
             break
 
-        yield from raw_vacancies['items']
+        yield from raw_jobs['items']
 
 
-def predict_rub_salary_hh(vacancy: dict):
-    salary = vacancy['salary']
+def predict_rub_salary_hh(job: dict):
+    salary = job['salary']
     if salary['currency'] != 'RUR':
         return None
     return predict_salary(salary['from'], salary['to'])
 
 
 def get_average_salary_hh(lang: str):
+    jobs_to_process = tuple(fetch_jobs_hh(lang))
     lang_jobs_salaries = tuple(
-        filter(
-            bool,
-            map(predict_rub_salary_hh, fetch_vacancies_hh(lang))
-        )
+        filter(bool, map(predict_rub_salary_hh, jobs_to_process))
     )
     jobs_avg_salary = {
         'Язык программирования': lang,
-        'Вакансий найдено': get_vacancies_count_hh(lang),
+        'Вакансий найдено': len(jobs_to_process),
         'Вакансий обработано': len(lang_jobs_salaries),
         'Средняя зарплата': int(mean(lang_jobs_salaries)),
     }
@@ -79,23 +64,7 @@ def get_table_hh(prog_langs: list[str]):
     return tabulate(langs_jobs, headers='keys', tablefmt="grid")
 
 
-def get_vacancies_count_sj(secret_key: str, lang: str) -> int:
-    url = 'https://api.superjob.ru/2.0/vacancies/'
-    headers = {
-        'X-Api-App-Id': secret_key,
-    }
-    payload = {
-        'catalogues': 48,
-        'keyword': f'программист {lang}',
-        'town': 4,
-        'period': 0,
-    }
-    response = requests.get(url, headers=headers, params=payload)
-    response.raise_for_status()
-    return response.json()['total']
-
-
-def fetch_vacancies_sj(secret_key: str, lang: str):
+def fetch_jobs_sj(secret_key: str, lang: str):
     url = 'https://api.superjob.ru/2.0/vacancies/'
     headers = {
         'X-Api-App-Id': secret_key,
@@ -126,15 +95,13 @@ def predict_rub_salary_sj(job: dict):
 
 
 def get_average_salary_sj(lang: str, secret_key: str):
+    jobs_to_process = tuple(fetch_jobs_sj(secret_key, lang))
     lang_jobs_salaries = tuple(
-        filter(
-            bool,
-            map(predict_rub_salary_sj, fetch_vacancies_sj(secret_key, lang))
-        )
+        filter(bool, map(predict_rub_salary_sj, jobs_to_process))
     )
     jobs_avg_salary = {
         'Язык программирования': lang,
-        'Вакансий найдено': get_vacancies_count_sj(secret_key, lang),
+        'Вакансий найдено': len(jobs_to_process),
         'Вакансий обработано': len(lang_jobs_salaries),
         'Средняя зарплата': int(mean(lang_jobs_salaries)),
     }

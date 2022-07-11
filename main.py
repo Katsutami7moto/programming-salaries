@@ -60,7 +60,7 @@ def predict_rub_salary_hh(vacancy: dict):
 def get_average_salary_hh(lang: str):
     lang_jobs_salaries = tuple(
         filter(
-            lambda x: x is not None,
+            bool,
             map(predict_rub_salary_hh, fetch_vacancies_hh(lang))
         )
     )
@@ -130,7 +130,7 @@ def get_average_salary_sj(lang: str):
     secret_key = env('SUPERJOB_SECRET_KEY')
     lang_jobs_salaries = tuple(
         filter(
-            lambda x: x is not None,
+            bool,
             map(predict_rub_salary_sj, fetch_vacancies_sj(secret_key, lang))
         )
     )
@@ -161,7 +161,10 @@ if __name__ == '__main__':
         'Ruby',
         'Scala',
     ]
-    print('\nHeadHunter Moscow')
-    print(get_table_hh(programming_languages))
-    print('\nSuperJob Moscow')
-    print(get_table_sj(programming_languages))
+    hh_table = get_table_hh(programming_languages)
+    sj_table = get_table_sj(programming_languages)
+    print(
+        '\nHeadHunter Moscow', hh_table,
+        '\nSuperJob Moscow', sj_table,
+        sep='\n'
+    )

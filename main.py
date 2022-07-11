@@ -20,11 +20,13 @@ def predict_salary(salary_from, salary_to):
 
 def fetch_jobs_hh(lang: str):
     url = 'https://api.hh.ru/vacancies'
+    moscow_area_id = 1
+    max_days_of_jobs_age = 30
     for page in count(0):
         payload = {
             'text': f'программист {lang}',
-            'area': 1,
-            'period': 30,
+            'area': moscow_area_id,
+            'period': max_days_of_jobs_age,
             'only_with_salary': True,
             'page': page,
         }
@@ -69,13 +71,17 @@ def fetch_jobs_sj(secret_key: str, lang: str):
     headers = {
         'X-Api-App-Id': secret_key,
     }
+    software_development_catalogue_id = 48
+    moscow_area_id = 4
+    jobs_of_any_age = 0
+    max_jobs_on_page = 100
     for page in count(0):
         payload = {
-            'catalogues': 48,
+            'catalogues': software_development_catalogue_id,
             'keyword': f'программист {lang}',
-            'town': 4,
-            'period': 0,
-            'count': 100,
+            'town': moscow_area_id,
+            'period': jobs_of_any_age,
+            'count': max_jobs_on_page,
             'page': page,
         }
         response = requests.get(url, headers=headers, params=payload)

@@ -1,5 +1,6 @@
 from itertools import count
 from statistics import mean
+from functools import partial
 
 import requests
 from environs import Env
@@ -124,10 +125,7 @@ def predict_rub_salary_sj(job: dict):
     return predict_salary(job['payment_from'], job['payment_to'])
 
 
-def get_average_salary_sj(lang: str):
-    env = Env()
-    env.read_env()
-    secret_key = env('SUPERJOB_SECRET_KEY')
+def get_average_salary_sj(lang: str, secret_key: str):
     lang_jobs_salaries = tuple(
         filter(
             bool,
@@ -143,12 +141,18 @@ def get_average_salary_sj(lang: str):
     return jobs_avg_salary
 
 
-def get_table_sj(prog_langs: list[str]):
-    langs_jobs = list(map(get_average_salary_sj, prog_langs))
+def get_table_sj(prog_langs: list[str], secret_key: str):
+    partial_get_avg_salary_sj = partial(
+        get_average_salary_sj, secret_key=secret_key
+    )
+    langs_jobs = list(map(partial_get_avg_salary_sj, prog_langs))
     return tabulate(langs_jobs, headers='keys', tablefmt="grid")
 
 
 if __name__ == '__main__':
+    env = Env()
+    env.read_env()
+    sj_secret_key = env('SUPERJOB_SECRET_KEY')
     programming_languages = [
         'JavaScript',
         'Python',
@@ -162,7 +166,7 @@ if __name__ == '__main__':
         'Scala',
     ]
     hh_table = get_table_hh(programming_languages)
-    sj_table = get_table_sj(programming_languages)
+    sj_table = get_table_sj(programming_languages, sj_secret_key)
     print(
         '\nHeadHunter Moscow', hh_table,
         '\nSuperJob Moscow', sj_table,
